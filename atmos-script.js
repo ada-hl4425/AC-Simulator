@@ -1,9 +1,11 @@
 // ==========================================
 // ATMOSPHERIC CHEMISTRY SIMULATOR
 // Core Engine with Chemical Mechanism
+// VERSION 2.0 - With Molecular Structures
 // ==========================================
 
-console.log('🌍 Atmospheric Chemistry Simulator initializing...');
+console.log('🌍 Atmospheric Chemistry Simulator v2.0 initializing...');
+console.log('📦 Molecular structure rendering enabled');
 
 // Physical Constants
 const R = 8.314; // Gas constant J/(mol·K)
@@ -799,8 +801,14 @@ function drawArrow(ctx, x1, y1, x2, y2, color, label) {
 
 function drawNode(ctx, x, y, size, color, label) {
     // Draw molecular structures instead of simple circles
-    const scale = size;
+    const scale = Math.max(size * 1.5, 20); // Make molecules bigger
     const conc = 0; // Will be passed separately in future
+    
+    // Debug: log first call
+    if (!drawNode.logged) {
+        console.log(`Drawing ${label} at (${x}, ${y}) with scale ${scale}`);
+        drawNode.logged = true;
+    }
     
     ctx.save();
     ctx.translate(x, y);
