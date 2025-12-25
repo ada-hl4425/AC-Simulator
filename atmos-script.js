@@ -671,12 +671,24 @@ function updateChart() {
 
 function setupNetworkCanvas() {
     networkCanvas = document.getElementById('networkCanvas');
+    if (!networkCanvas) {
+        console.error('Network canvas not found!');
+        return;
+    }
+    
     networkCtx = networkCanvas.getContext('2d');
     
-    // Set canvas size
-    const container = networkCanvas.parentElement;
-    networkCanvas.width = container.clientWidth - 40;
-    networkCanvas.height = 350;
+    // Set canvas size based on container
+    function resizeNetworkCanvas() {
+        const container = networkCanvas.parentElement;
+        const rect = container.getBoundingClientRect();
+        networkCanvas.width = Math.max(400, rect.width - 40);
+        networkCanvas.height = Math.max(300, Math.min(350, window.innerHeight * 0.4));
+        updateNetworkVisualization();
+    }
+    
+    resizeNetworkCanvas();
+    window.addEventListener('resize', resizeNetworkCanvas);
     
     updateNetworkVisualization();
 }
@@ -786,23 +798,208 @@ function drawArrow(ctx, x1, y1, x2, y2, color, label) {
 }
 
 function drawNode(ctx, x, y, size, color, label) {
-    // Outer circle
-    ctx.fillStyle = color;
+    // Draw molecular structures instead of simple circles
+    const scale = size;
+    const conc = 0; // Will be passed separately in future
+    
+    ctx.save();
+    ctx.translate(x, y);
+    
+    // Atom colors (CPK scheme)
+    const C = '#909090', H = '#ffffff', O = '#ff0d0d', N = '#3050f8';
+    const r = scale * 0.4; // atom radius
+    const b = scale * 1.0; // bond length
+    
+    // Draw based on molecule name
+    if (label === 'CH₄') {
+        // Methane - central C + 4 H
+        drawAtom(ctx, 0, 0, r*1.1, C, 'C');
+        [[b,0], [-b*0.5,b*0.86], [-b*0.5,-b*0.86]].forEach(([dx,dy]) => {
+            drawBond(ctx, 0, 0, dx, dy);
+            drawAtom(ctx, dx, dy, r*0.7, H, 'H');
+        });
+    } else if (label === 'CO') {
+        // Carbon monoxide - triple bond
+        drawTripleBond(ctx, -b*0.7, 0, b*0.7, 0);
+        drawAtom(ctx, -b*0.7, 0, r, C, 'C');
+        drawAtom(ctx, b*0.7, 0, r, O, 'O');
+    } else if (label === 'CO₂') {
+        // Carbon dioxide
+        drawDoubleBond(ctx, -b, 0, 0, 0);
+        drawDoubleBond(ctx, 0, 0, b, 0);
+        drawAtom(ctx, -b, 0, r, O, 'O');
+        drawAtom(ctx, 0, 0, r, C, 'C');
+        drawAtom(ctx, b, 0, r, O, 'O');
+    } else if (label === 'OH') {
+        // Hydroxyl radical
+        drawBond(ctx, -b*0.5, 0, b*0.5, 0);
+        drawAtom(ctx, -b*0.5, 0, r, O, 'O');
+        drawAtom(ctx, b*0.5, 0, r*0.7, H, 'H');
+        drawRadical(ctx, b*0.8, -r*0.7);
+    } else if (label === 'HO₂') {
+        // Hydroperoxyl
+        drawBond(ctx, -b*0.7, 0, 0, 0);
+        drawBond(ctx, 0, 0, b*0.7, 0);
+        drawAtom(ctx, -b*0.7, 0, r*0.7, H, 'H');
+        drawAtom(ctx, 0, 0, r, O, 'O');
+        drawAtom(ctx, b*0.7, 0, r, O, 'O');
+        drawRadical(ctx, b*1.0, -r*0.6);
+    } else if (label === 'O₃') {
+        // Ozone - bent
+        const a = Math.PI/6.5;
+        drawBond(ctx, 0, 0, b*Math.cos(a), -b*Math.sin(a));
+        drawBond(ctx, 0, 0, b*Math.cos(a), b*Math.sin(a));
+        drawAtom(ctx, 0, 0, r, O, 'O');
+        drawAtom(ctx, b*Math.cos(a), -b*Math.sin(a), r, O, 'O');
+        drawAtom(ctx, b*Math.cos(a), b*Math.sin(a), r, O, 'O');
+    } else if (label === 'NO') {
+        // Nitric oxide
+        drawDoubleBond(ctx, -b*0.6, 0, b*0.6, 0);
+        drawAtom(ctx, -b*0.6, 0, r, N, 'N');
+        drawAtom(ctx, b*0.6, 0, r, O, 'O');
+    } else if (label === 'NO₂') {
+        // Nitrogen dioxide - bent
+        const a = Math.PI/6;
+        drawBond(ctx, 0, 0, b*Math.cos(a), -b*Math.sin(a), 1.5);
+        drawBond(ctx, 0, 0, b*Math.cos(a), b*Math.sin(a), 1.5);
+        drawAtom(ctx, 0, 0, r, N, 'N');
+        drawAtom(ctx, b*Math.cos(a), -b*Math.sin(a), r, O, 'O');
+        drawAtom(ctx, b*Math.cos(a), b*Math.sin(a), r, O, 'O');
+    } else if (label === 'CH₂O') {
+        // Formaldehyde
+        drawDoubleBond(ctx, 0, -b*0.6, 0, b*0.4);
+        drawBond(ctx, 0, -b*0.6, -b*0.5, -b*1.1);
+        drawBond(ctx, 0, -b*0.6, b*0.5, -b*1.1);
+        drawAtom(ctx, 0, -b*0.6, r, C, 'C');
+        drawAtom(ctx, 0, b*0.4, r, O, 'O');
+        drawAtom(ctx, -b*0.5, -b*1.1, r*0.7, H, 'H');
+        drawAtom(ctx, b*0.5, -b*1.1, r*0.7, H, 'H');
+    } else if (label === 'CH₃O₂') {
+        // Methylperoxy
+        drawAtom(ctx, -b*0.8, 0, r, C, 'C');
+        drawBond(ctx, -b*0.8, 0, 0, 0);
+        drawAtom(ctx, 0, 0, r, O, 'O');
+        drawBond(ctx, 0, 0, b*0.7, 0);
+        drawAtom(ctx, b*0.7, 0, r, O, 'O');
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('CH₃', -b*0.8, -r*1.8);
+        drawRadical(ctx, b*1.0, -r*0.6);
+    } else {
+        // Fallback: simple circle
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, 0, 0);
+    }
+    
+    ctx.restore();
+}
+
+// Helper: draw atom sphere
+function drawAtom(ctx, x, y, radius, color, lbl) {
+    const grad = ctx.createRadialGradient(x-radius*0.3, y-radius*0.3, radius*0.1, x, y, radius);
+    grad.addColorStop(0, lightenHex(color, 60));
+    grad.addColorStop(0.7, color);
+    grad.addColorStop(1, darkenHex(color, 30));
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(x, y, size, 0, 2 * Math.PI);
+    ctx.arc(x, y, radius, 0, Math.PI*2);
     ctx.fill();
-    
-    // Border
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = darkenHex(color, 40);
+    ctx.lineWidth = 0.5;
     ctx.stroke();
-    
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y);
+    if (lbl && radius > 3) {
+        ctx.fillStyle = radius > 5 ? '#000' : '#fff';
+        ctx.font = `bold ${Math.max(7, radius*1.2)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 2;
+        ctx.fillText(lbl, x, y);
+        ctx.shadowBlur = 0;
+    }
+}
+
+// Helper: draw bond
+function drawBond(ctx, x1, y1, x2, y2, w=2) {
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = w;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+// Helper: double bond
+function drawDoubleBond(ctx, x1, y1, x2, y2) {
+    const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+    const ox=-dy/len*2, oy=dx/len*2;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1+ox, y1+oy);
+    ctx.lineTo(x2+ox, y2+oy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1-ox, y1-oy);
+    ctx.lineTo(x2-ox, y2-oy);
+    ctx.stroke();
+}
+
+// Helper: triple bond
+function drawTripleBond(ctx, x1, y1, x2, y2) {
+    const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+    const ox=-dy/len*2.5, oy=dx/len*2.5;
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    [0, ox, -ox].forEach((offX, i) => {
+        const offY = i===0 ? 0 : (i===1 ? oy : -oy);
+        ctx.beginPath();
+        ctx.moveTo(x1+offX, y1+offY);
+        ctx.lineTo(x2+offX, y2+offY);
+        ctx.stroke();
+    });
+}
+
+// Helper: radical dot
+function drawRadical(ctx, x, y) {
+    ctx.fillStyle = '#ff3333';
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#aa0000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+}
+
+// Helper: lighten hex color
+function lightenHex(hex, pct) {
+    const num = parseInt(hex.replace('#',''), 16);
+    const amt = Math.round(2.55*pct);
+    const R = Math.min(255, (num>>16)+amt);
+    const G = Math.min(255, ((num>>8)&0xFF)+amt);
+    const B = Math.min(255, (num&0xFF)+amt);
+    return '#'+(0x1000000+R*0x10000+G*0x100+B).toString(16).slice(1);
+}
+
+// Helper: darken hex color
+function darkenHex(hex, pct) {
+    const num = parseInt(hex.replace('#',''), 16);
+    const amt = Math.round(2.55*pct);
+    const R = Math.max(0, (num>>16)-amt);
+    const G = Math.max(0, ((num>>8)&0xFF)-amt);
+    const B = Math.max(0, (num&0xFF)-amt);
+    return '#'+(0x1000000+R*0x10000+G*0x100+B).toString(16).slice(1);
 }
 
 function updateReactionList() {
