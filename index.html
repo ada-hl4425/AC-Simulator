@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmospheric Chemistry Simulator</title>
+    <link rel="stylesheet" href="atmos-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Atmospheric Chemistry Simulator</h1>
+            <p class="subtitle">Interactive visualization of tropospheric CH₄-CO-CO₂-O₃ chemistry</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Panel: Concentration Time Series -->
+            <div class="panel chart-panel">
+                <h2>Species Concentrations</h2>
+                <div class="chart-controls">
+                    <label>
+                        <input type="checkbox" id="logScale" checked>
+                        <span>Log Scale</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="showAll" checked>
+                        <span>Show All Species</span>
+                    </label>
+                </div>
+                <canvas id="concentrationChart"></canvas>
+                
+                <div class="species-legend">
+                    <h3>Current Concentrations (ppb)</h3>
+                    <div id="currentConcentrations" class="concentration-values"></div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Reaction Network -->
+            <div class="panel network-panel">
+                <h2>Reaction Network</h2>
+                <div class="network-controls">
+                    <label>
+                        <input type="checkbox" id="showRates" checked>
+                        <span>Show Reaction Rates</span>
+                    </label>
+                </div>
+                <canvas id="networkCanvas"></canvas>
+                
+                <div class="key-reactions">
+                    <h3>Key Reactions</h3>
+                    <div id="reactionList"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Controls -->
+            <div class="panel control-panel">
+                <h2>Simulation Controls</h2>
+                
+                <div class="control-section">
+                    <h3>Time Control</h3>
+                    <div class="time-display">
+                        <div class="time-info">
+                            <span>Simulated Time:</span>
+                            <span id="simulatedTime" class="value">0.0 hours</span>
+                        </div>
+                        <div class="time-info">
+                            <span>Local Time:</span>
+                            <span id="localTime" class="value">12:00</span>
+                        </div>
+                        <div class="sun-indicator">
+                            <span id="sunIcon">☀️</span>
+                            <span id="sunStatus">Daytime</span>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="runBtn" class="btn btn-primary">▶ Run</button>
+                        <button id="pauseBtn" class="btn btn-secondary">⏸ Pause</button>
+                        <button id="resetBtn" class="btn btn-danger">↺ Reset</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>Simulation Speed</span>
+                            <span class="value" id="speedValue">1x</span>
+                        </label>
+                        <input type="range" id="simSpeed" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>Time Step (s)</span>
+                            <span class="value" id="dtValue">60</span>
+                        </label>
+                        <input type="range" id="timeStep" min="10" max="600" step="10" value="60">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Environmental Conditions</h3>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>Temperature (K)</span>
+                            <span class="value" id="tempValue">298</span>
+                        </label>
+                        <input type="range" id="temperature" min="250" max="320" step="1" value="298">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>Pressure (hPa)</span>
+                            <span class="value" id="pressureValue">1000</span>
+                        </label>
+                        <input type="range" id="pressure" min="500" max="1013" step="10" value="1000">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>Solar Zenith Angle (°)</span>
+                            <span class="value" id="sza">0</span>
+                        </label>
+                        <input type="range" id="solarZenith" min="0" max="90" step="1" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <input type="checkbox" id="diurnalCycle" checked>
+                            <span>Enable Diurnal Cycle</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Emissions & Sources</h3>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>CH₄ Emission (ppb/day)</span>
+                            <span class="value" id="ch4EmissionValue">10.0</span>
+                        </label>
+                        <input type="range" id="ch4Emission" min="0" max="50" step="0.5" value="10">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>CO Emission (ppb/day)</span>
+                            <span class="value" id="coEmissionValue">5.0</span>
+                        </label>
+                        <input type="range" id="coEmission" min="0" max="20" step="0.5" value="5">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            <span>NOₓ Level (ppb)</span>
+                            <span class="value" id="noxValue">1.0</span>
+                        </label>
+                        <input type="range" id="noxLevel" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Initial Conditions</h3>
+                    <button id="resetToBackground" class="btn btn-small">Background Atmosphere</button>
+                    <button id="resetToPolluted" class="btn btn-small">Polluted Conditions</button>
+                    <button id="resetToClean" class="btn btn-small">Clean Marine</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>Export Data</h3>
+                    <button id="exportCSV" class="btn btn-small">Download CSV</button>
+                    <button id="exportImage" class="btn btn-small">Save Chart as PNG</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-section">
+                <h3>About This Simulator</h3>
+                <p>
+                    This simulator models the fundamental chemistry of Earth's troposphere, focusing on the 
+                    oxidation chain: CH₄ → CO → CO₂. It includes key reactions involving OH radicals, 
+                    ozone photochemistry, and NOₓ cycling.
+                </p>
+                <p>
+                    The model uses a simplified chemical mechanism with ~15 reactions and ~10 key species, 
+                    solved using the Runge-Kutta 4th order method.
+                </p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Key Concepts</h3>
+                <ul>
+                    <li><strong>OH Radical:</strong> The "detergent" of the atmosphere, controlling the lifetime of most trace gases</li>
+                    <li><strong>Photolysis:</strong> Light-driven reactions (J-values) that vary with solar zenith angle</li>
+                    <li><strong>NOₓ Cycling:</strong> NO ↔ NO₂ interconversion controls O₃ production</li>
+                    <li><strong>CH₄ Oxidation:</strong> Multi-step process converting methane to CO₂</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>Tropospheric chemistry simulation • Educational tool for atmospheric science</p>
+            <p>Based on simplified MCM (Master Chemical Mechanism) • Suitable for understanding core concepts</p>
+        </footer>
+    </div>
+
+    <script src="atmos-script.js"></script>
+</body>
+</html>
